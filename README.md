@@ -4,6 +4,58 @@
 
 This repository contains a time-boxed interview assessment implementation of a checkout system. It delivers an end-to-end .NET + React + SQLite vertical slice, then extends it with Part Two split-payment behavior.
 
+## Original Problem Statement
+
+### AI Software Engineer - Tech Test
+
+### Before You Start
+
+We expect you to use AI tools (Copilot, Claude, ChatGPT, Cursor, or anything else you would normally reach for) to complete this exercise. That is not a loophole, it is the point. We are evaluating how you are empowered by AI to do the job at hand, not whether you can memorise syntax.
+
+What we are assessing is your judgement: the decisions you make, the assumptions you challenge, and how you direct a tool rather than just accept what it gives you. To do that fairly, we need to see your working, not just your output.
+
+### What To Submit
+
+Please return the following three things:
+
+1. Your code: a working solution with the tech we use (C#, React, etc.)
+2. Your AI session logs: the full chat history/transcript from whichever AI tool you used. Most tools let you export or copy this directly. If your tool does not support export, screenshots or PDF prints are fine.
+3. A short decision log: no more than half a page. What did you ask the AI for? What did you change or reject from its output, and why? We are not looking for polish here, bullet points are fine.
+
+### The Brief
+
+#### Part One
+
+Build an app that lets someone add items from a product catalogue to an order, which then calculates the totals. How the catalogue is structured and sourced is up to you.
+
+Requirements:
+
+1. An order has multiple line items, each with a product name, unit price, and quantity.
+2. Some items are taxable, some are zero-rated (e.g. cold takeaway food).
+3. The standard tax rate is 20%.
+4. A discount can be applied to the whole order, either as a percentage or a fixed amount.
+5. The service should return a breakdown: subtotal, discount applied, tax, and total.
+
+#### Part Two
+
+Only open this once you are happy with Part One. It builds directly on what you have already built, and it is designed to test how you extend and adapt an existing design, not how you plan ahead for it. Please do not jump ahead.
+
+Requirement:
+
+1. A table of customers now wants to split one order 3 ways evenly. Extend your solution so an order total can be divided into equal shares, with any rounding remainder allocated to a single payer rather than lost or duplicated.
+
+### A Note On Scope
+
+The brief above is intentionally light on detail in places. That is deliberate. Real requirements rarely arrive fully specified, and we want to see how you handle that: what you ask about, what you assume, and how you justify the assumptions you make.
+
+There is not a single correct interpretation. Where you set the bar and how you show off is also completely up to you.
+
+### Logistics
+
+- Time: aim for no more than 2-3 hours total across both parts. We are not clock-watching, but please do not over-invest.
+- Return by: reply to the assessment email with your submission.
+- Questions: if anything is unclear, email us. We are expecting it.
+
 ## Submission Snapshot
 
 Implemented scope:
