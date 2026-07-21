@@ -1,0 +1,50 @@
+:root {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #f5f1e8;
+  background:
+    radial-gradient(circle at top, rgba(255, 153, 102, 0.24), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #0f2230 55%, #102d40 100%);
+  color-scheme: dark;
+  --panel: rgba(8, 18, 31, 0.78);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --accent: #ff9966;
+  --accent-strong: #ffd277;
+  --text-muted: rgba(245, 241, 232, 0.72);
+  --danger: #ff8b8b;
+  --success: #8fe3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 50%, transparent 88%);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  position: relative;
+}

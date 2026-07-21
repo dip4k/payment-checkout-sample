@@ -1,0 +1,58 @@
+@CheckoutSystem.Api_HostAddress = http://localhost:5152
+
+GET {{CheckoutSystem.Api_HostAddress}}/api/v1/catalogue
+Accept: application/json
+X-Correlation-ID: demo-correlation-catalogue
+
+###
+
+POST {{CheckoutSystem.Api_HostAddress}}/api/v1/orders/calculate
+Content-Type: application/json
+X-Correlation-ID: demo-correlation-calculate
+
+{
+	"lineItems": [
+		{
+			"productId": "11111111-1111-1111-1111-111111111111",
+			"quantity": 2,
+			"productVersion": 1
+		},
+		{
+			"productId": "22222222-2222-2222-2222-222222222222",
+			"quantity": 1,
+			"productVersion": 1
+		}
+	],
+	"discount": {
+		"type": 1,
+		"value": 10
+	}
+}
+
+###
+
+POST {{CheckoutSystem.Api_HostAddress}}/api/v1/orders/submit
+Content-Type: application/json
+X-Correlation-ID: demo-correlation-submit
+Idempotency-Key: submit-key-001
+
+{
+	"lineItems": [
+		{
+			"productId": "11111111-1111-1111-1111-111111111111",
+			"quantity": 2,
+			"productVersion": 1
+		},
+		{
+			"productId": "33333333-3333-3333-3333-333333333333",
+			"quantity": 1,
+			"productVersion": 1
+		}
+	],
+	"discount": {
+		"type": 2,
+		"value": 1.50
+	}
+}
+
+###

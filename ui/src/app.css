@@ -1,0 +1,83 @@
+.app-shell {
+  min-height: 100vh;
+  padding: 32px;
+  display: grid;
+  gap: 24px;
+}
+
+.hero-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 153, 102, 0.35), transparent 32%),
+    linear-gradient(135deg, rgba(11, 19, 43, 0.95), rgba(16, 45, 64, 0.9));
+  box-shadow: 0 20px 80px rgba(4, 8, 18, 0.35);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.72rem;
+  color: rgba(255, 232, 214, 0.78);
+}
+
+.hero-panel h1 {
+  margin: 0;
+  font-size: clamp(2.3rem, 4vw, 4rem);
+}
+
+.hero-copy {
+  max-width: 50ch;
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}
+
+.hero-meta {
+  min-width: 240px;
+  display: grid;
+  gap: 16px;
+}
+
+.hero-meta div {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-meta span,
+.hero-meta strong {
+  display: block;
+}
+
+.hero-meta span {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.hero-meta strong {
+  word-break: break-word;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  gap: 24px;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .hero-panel,
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

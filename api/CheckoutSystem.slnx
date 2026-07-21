@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CheckoutSystem.Api/CheckoutSystem.Api.csproj" />
+  <Project Path="CheckoutSystem.Application/CheckoutSystem.Application.csproj" />
+  <Project Path="CheckoutSystem.Domain/CheckoutSystem.Domain.csproj" />
+  <Project Path="CheckoutSystem.Infrastructure/CheckoutSystem.Infrastructure.csproj" />
+</Solution>
