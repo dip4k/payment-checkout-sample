@@ -123,10 +123,10 @@ The current implementation follows a modular clean-architecture direction:
 
 ## Key Behaviors
 
-- Monetary calculations use `decimal`.
+- Monetary calculations use `decimal` in GBP.
 - Discounts are applied before tax.
 - Tax is calculated only on taxable items.
-- Monetary values are rounded to 2 decimal places using `MidpointRounding.AwayFromZero`.
+- Monetary values are rounded per item to 2 decimal places using bankers rounding (`MidpointRounding.ToEven`).
 - Part Two split logic rounds the final total to a whole-unit amount for split purposes, returns exactly 3 whole-number shares, and assigns any remainder to payer 1.
 - Order submission requires `Idempotency-Key`.
 - Product version metadata is used for optimistic concurrency checks on submit.

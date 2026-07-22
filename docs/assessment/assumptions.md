@@ -5,9 +5,10 @@ These assumptions reduce ambiguity in the brief and keep the proof of concept im
 ## Functional Assumptions
 
 - The product catalogue is locally managed and seeded with a small fixed dataset.
+- All values are in GBP.
 - Each product has a name, unit price, and taxability flag.
 - Order line quantities are positive whole numbers.
-- The standard tax rate is fixed at 20% for taxable items only.
+- The standard tax rate is fixed at 20% VAT for taxable items only.
 - Discounts apply to the whole order, not to individual lines.
 - A discount may be either percentage-based or fixed-amount, but not both at the same time.
 - Fixed discounts cannot reduce the payable amount below zero.
@@ -20,11 +21,11 @@ These assumptions reduce ambiguity in the brief and keep the proof of concept im
 
 ## Calculation Assumptions
 
-- Monetary values are stored and calculated using `decimal`.
+- Monetary values are stored and calculated using `decimal` in GBP.
 - Discount is applied before tax.
 - Tax is calculated only on taxable line amounts after discount.
-- Rounding is applied at order level, not per line.
-- Monetary outputs are rounded to 2 decimal places using one consistent rounding rule across the service.
+- Rounding is applied per item (subtotal, discount, tax, total) to 2 decimal places using bankers rounding (round half to even).
+- Monetary outputs are consistently rounded using bankers rounding across the service.
 
 ## Persistence Assumptions
 

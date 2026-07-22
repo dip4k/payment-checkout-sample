@@ -1,6 +1,21 @@
 # Backend Architecture And Data Model
 
-This page documents backend project dependencies, layer responsibilities, request flow, and the SQLite schema for the checkout proof of concept.
+This page documents the backend project dependencies, layer responsibilities, system architecture, domain/application classes, database schema, and data relationships for the checkout proof of concept.
+
+## Stack And Versions
+
+| Component | Technology | Version | Purpose |
+| --- | --- | --- | --- |
+| Runtime | .NET | 10.0 | API and Application runtime |
+| API Framework | ASP.NET Core | 10.0.9 | Minimal HTTP API and routing |
+| ORM | Entity Framework Core | 10.0.9 | Code-first schema and persistence |
+| Database | SQLite | (embedded) | Local transactional data store |
+| API Documentation | Swashbuckle/Swagger | 10.0.1 | OpenAPI UI for endpoint exploration |
+| DI Container | Microsoft.Extensions.DependencyInjection | 10.0.0 | Built-in service composition |
+| Logging | Microsoft.Extensions.Logging | 10.0.0 | Structured logging abstractions |
+| UI Framework | React | 19.1.1 | Client-side UI and state management |
+| UI Build | Vite | 7.1.0 | Fast ES module bundler |
+| TypeScript | TypeScript | 5.9.2 | Type-safe client code |
 
 ## 1. API Project Dependency Graph
 
@@ -79,7 +94,208 @@ flowchart TB
 - Infrastructure layer owns technical implementation details and external I/O.
 - Dependency direction stays inward: Api and Infrastructure depend on Application, and Application depends on Domain.
 
-## 3. End-To-End Request Flow
+## 3. Domain And Application Class Diagram
+
+```mermaid
+classDiagram
+    namespace Domain {
+        class Product {
+            - Id: Guid
+            - Name: string
+            - UnitPrice: decimal
+            - IsTaxable: bool
+            - Version: long
+        }
+        
+        class DiscountType {
+            <<enumeration>>
+            None
+            Percentage
+            FixedAmount
+        }
+    }
+
+    namespace Application_Models {
+        class CatalogueItemModel {
+            - Id: Guid
+            - Name: string
+            - UnitPrice: decimal
+            - IsTaxable: bool
+            - Version: long
+        }
+        
+        class OrderLineModel {
+            - ProductId: Guid
+            - Quantity: int
+            - ProductVersion: long?
+        }
+        
+        class DiscountModel {
+            - Type: DiscountType
+            - Value: decimal
+        }
+        
+        class OrderCalculationRequestModel {
+            - LineItems: OrderLineModel[]
+            - Discount: DiscountModel?
+        }
+        
+        class OrderCalculationResultModel {
+            - Subtotal: decimal
+            - DiscountApplied: decimal
+            - Tax: decimal
+            - Total: decimal
+            - SplitShares: OrderSplitShareModel[]
+        }
+        
+        class OrderSplitShareModel {
+            - PayerIndex: int
+            - Amount: int
+        }
+    }
+
+    namespace Application_Services {
+        class ICheckoutService {
+            <<interface>>
+            +GetCatalogueAsync(): Task~IReadOnlyCollection~CatalogueItemModel~~
+            +CalculateOrderAsync(): Task~OrderCalculationResultModel~
+            +SubmitOrderAsync(): Task~OrderCalculationResultModel~
+        }
+        
+        class CheckoutService {
+            -_productRepository: IProductRepository
+            -_validator: IValidator
+            -_logger: ILogger
+            +GetCatalogueAsync()
+            +CalculateOrderAsync()
+            +SubmitOrderAsync()
+            -CalculateInternalAsync()
+            -CalculateDiscountAmount()
+            -RoundCurrency()
+            -CalculateSplitShares()
+        }
+    }
+
+    namespace Application_Commands {
+        class SubmitOrderCommand {
+            - Request: OrderCalculationRequestModel
+            - IdempotencyKey: string
+            - CorrelationId: string
+        }
+        
+        class ICommandHandler {
+            <<interface>>
+            +HandleAsync(): Task~OrderCalculationResultModel~
+        }
+        
+        class SubmitOrderCommandHandler {
+            -_checkoutService: ICheckoutService
+            -_idempotencyRepository: IIdempotencyRepository
+            -_orderRepository: IOrderRepository
+            -_eventDispatcher: IDomainEventDispatcher
+            -_unitOfWork: IUnitOfWork
+            -_logger: ILogger
+            +HandleAsync()
+        }
+    }
+
+    namespace Application_Abstractions {
+        class IProductRepository {
+            <<interface>>
+            +GetAllAsync(): Task~IEnumerable~Product~~
+            +GetByIdsAsync(): Task~IEnumerable~Product~~
+        }
+        
+        class IOrderRepository {
+            <<interface>>
+            +AddAsync(): Task~void~
+            +SaveAsync(): Task~void~
+        }
+        
+        class IIdempotencyRepository {
+            <<interface>>
+            +TryGetAsync(): Task~IdempotencyResultModel?~
+            +SaveAsync(): Task~void~
+        }
+        
+        class IDomainEventDispatcher {
+            <<interface>>
+            +DispatchAsync(): Task~void~
+        }
+        
+        class IUnitOfWork {
+            <<interface>>
+            +ExecuteAsync(): Task~void~
+        }
+        
+        class IValidator {
+            <<interface>>
+            +Validate(): ValidationResult
+        }
+    }
+
+    namespace Infrastructure_Persistence {
+        class CheckoutDbContext {
+            - DbSet Products
+            - DbSet Orders
+            - DbSet OrderLineSnapshots
+            - DbSet OrderStatusHistory
+            - DbSet IdempotencyRecords
+            - DbSet OutboxMessages
+        }
+        
+        class ProductRepository {
+            -_context: CheckoutDbContext
+            +GetAllAsync()
+            +GetByIdsAsync()
+        }
+        
+        class OrderRepository {
+            -_context: CheckoutDbContext
+            +AddAsync()
+            +SaveAsync()
+        }
+        
+        class IdempotencyRepository {
+            -_context: CheckoutDbContext
+            +TryGetAsync()
+            +SaveAsync()
+        }
+        
+        class UnitOfWorkWrapper {
+            -_context: CheckoutDbContext
+            +ExecuteAsync()
+        }
+    }
+
+    ICheckoutService <|-- CheckoutService
+    ICommandHandler <|-- SubmitOrderCommandHandler
+    IProductRepository <|-- ProductRepository
+    IOrderRepository <|-- OrderRepository
+    IIdempotencyRepository <|-- IdempotencyRepository
+    IUnitOfWork <|-- UnitOfWorkWrapper
+    
+    CheckoutService --> IProductRepository
+    CheckoutService --> IValidator
+    SubmitOrderCommandHandler --> ICheckoutService
+    SubmitOrderCommandHandler --> IIdempotencyRepository
+    SubmitOrderCommandHandler --> IOrderRepository
+    SubmitOrderCommandHandler --> IDomainEventDispatcher
+    SubmitOrderCommandHandler --> IUnitOfWork
+    
+    ProductRepository --> CheckoutDbContext
+    OrderRepository --> CheckoutDbContext
+    IdempotencyRepository --> CheckoutDbContext
+    UnitOfWorkWrapper --> CheckoutDbContext
+    
+    CatalogueItemModel --> Product
+    OrderCalculationRequestModel --> OrderLineModel
+    OrderCalculationRequestModel --> DiscountModel
+    OrderCalculationResultModel --> OrderSplitShareModel
+    DiscountModel --> DiscountType
+```
+
+## 4. End-To-End Request Flow
 
 ```mermaid
 sequenceDiagram
@@ -123,7 +339,7 @@ sequenceDiagram
     Client-->>UI: Confirm success
 ```
 
-## 4. Database Table Relationship Diagram
+## 5. Database Table Relationship Diagram
 
 ```mermaid
 erDiagram
@@ -198,7 +414,7 @@ erDiagram
 - OutboxMessages is independent from Orders to support eventual integration publishing boundaries.
 - IdempotencyRecords is independent from Orders and stores replay payload totals for idempotent submission behavior.
 
-## 5. Database Schema Details
+## 6. Database Schema Details
 
 ### Products
 
@@ -320,7 +536,7 @@ Indexes:
 
 - IX_OutboxMessages_ProcessedAtUtc on ProcessedAtUtc.
 
-## 6. Operational Notes
+## 7. Operational Notes
 
 - API base path remains /api/v1.
 - UI default target remains http://localhost:5152/api/v1, overridable via VITE_API_BASE_URL.

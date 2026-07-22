@@ -161,12 +161,12 @@ public sealed class CheckoutService : ICheckoutService
 
     private static decimal RoundCurrency(decimal value)
     {
-        return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+        return Math.Round(value, 2, MidpointRounding.ToEven);
     }
 
     private static IReadOnlyCollection<OrderSplitShareModel> CalculateSplitShares(decimal total)
     {
-        var totalWholeUnits = decimal.ToInt32(Math.Round(total, 0, MidpointRounding.AwayFromZero));
+        var totalWholeUnits = decimal.ToInt32(Math.Round(total, 0, MidpointRounding.ToEven));
         var baseShareWholeUnits = totalWholeUnits / 3;
         var remainderWholeUnits = totalWholeUnits % 3;
 

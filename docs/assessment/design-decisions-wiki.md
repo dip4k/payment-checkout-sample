@@ -6,10 +6,11 @@ This file is a concise running index of implementation-level design decisions fo
 
 - Architecture style: modular clean-architecture direction with API, Application, Domain, and Infrastructure projects.
 - API strategy: versioned contracts and routes under `/api/v1`.
+- Currency: GBP for all monetary operations.
 - Money type: `decimal` for all financial values.
-- Tax rule: fixed standard rate 20% for taxable items.
+- Tax rule: fixed standard rate 20% VAT for taxable items.
 - Discount rule: apply order-level discount before tax.
-- Rounding rule: round at order level to 2 decimal places.
+- Rounding rule: round per item (subtotal, discount, tax, total) to 2 decimal places using bankers rounding (round half to even / `MidpointRounding.ToEven`).
 - Validation strategy: simple validator engine in application layer with structured errors.
 - Persistence strategy: EF Core code-first with SQLite and startup seed.
 - Scope control: Part Two was deferred until Part One completion and is now implemented as a thin extension.

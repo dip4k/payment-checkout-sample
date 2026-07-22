@@ -1,122 +1,188 @@
-# Application Architecture And Flow
+# Application Flow And Request/Response Examples
 
-This wiki page captures the current Part One and Part Two architecture and the end-to-end request flow between the React UI and the .NET backend.
+This wiki page captures the request/response flow between the React UI and the .NET backend, including sequence diagrams for each checkout phase.
 
-## API Project Dependency Graph
+## Architecture Overview
 
-```mermaid
-flowchart LR
-        Api[CheckoutSystem.Api]
-        App[CheckoutSystem.Application]
-        Domain[CheckoutSystem.Domain]
-        Infra[CheckoutSystem.Infrastructure]
+For detailed architecture information including layer responsibilities, class diagrams, and database schema, see [Backend Architecture And Data Model](backend-architecture-and-data-model.md).
 
-        Api --> App
-        Api --> Infra
-        Api --> Domain
-        App --> Domain
-        Infra --> App
-        Infra --> Domain
+The system follows a modular clean-architecture pattern with four projects:
+
+- **Domain**: core business concepts (Product, DiscountType)
+- **Application**: use-case orchestration and validation
+- **Infrastructure**: persistence, repositories, event dispatch
+- **API**: HTTP endpoints and composition
+
+## Request/Response Flows
+
+### Phase 1: Catalogue Discovery
+
+**Request:**
+```http
+GET /api/v1/catalogue
 ```
 
-### Dependency Intent
-
-- `CheckoutSystem.Domain`: core business concepts that should stay framework-agnostic and stable.
-- `CheckoutSystem.Application`: use-case orchestration, validation, and business workflows that depend on domain types, not storage or transport details.
-- `CheckoutSystem.Infrastructure`: technical implementations (EF Core, SQLite, repository implementations, event dispatch handlers) that fulfill application abstractions.
-- `CheckoutSystem.Api`: transport layer and composition root (endpoint mapping, contracts, middleware, DI wiring) that references the other projects to expose HTTP behavior.
-- `CheckoutSystem.Api -> CheckoutSystem.Domain` is acceptable in this proof-of-concept because endpoint contract mapping uses `DiscountType`; for stricter layering, map to an application enum/DTO and remove this reference.
-
-## Layered Block Diagram (What Goes Where)
-
-```mermaid
-flowchart TB
-        Client[Client Apps\nReact UI / Swagger / External Consumers]
-
-        subgraph ApiLayer[API Layer - CheckoutSystem.Api]
-                Middleware[Cross-cutting Middleware\nCorrelationId + Exception Handling]
-                Endpoints[Versioned HTTP Endpoints\n/api/v1/*]
-                Contracts[Request/Response Contracts\nContracts/V1]
-                Composition[Composition Root\nProgram.cs DI + pipeline]
-        end
-
-        subgraph AppLayer[Application Layer - CheckoutSystem.Application]
-                UseCases[Use Cases\nCheckoutService + SubmitOrderCommandHandler]
-                Ports[Ports/Abstractions\nPersistence + Events + Validation]
-                AppModels[Application Models\nRequest/Result models]
-                Policies[Business Policies\nValidation + orchestration]
-        end
-
-        subgraph DomainLayer[Domain Layer - CheckoutSystem.Domain]
-                Entities[Domain Types\nProduct, DiscountType]
-                DomainRules[Pure Business Rules\nMoney and discount primitives]
-        end
-
-        subgraph InfraLayer[Infrastructure Layer - CheckoutSystem.Infrastructure]
-                Persistence[Persistence Adapters\nDbContext + repositories + unit of work]
-                Eventing[Event Adapters\nDomainEventDispatcher + handlers]
-                DataStore[(SQLite)]
-        end
-
-        Client --> Endpoints
-        Middleware --> Endpoints
-        Endpoints --> UseCases
-        Endpoints --> Contracts
-        UseCases --> Ports
-        UseCases --> AppModels
-        UseCases --> Entities
-        Ports --> Persistence
-        Ports --> Eventing
-        Persistence --> DataStore
-        Eventing --> DataStore
+**Response:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Cold Sandwich",
+    "unitPrice": 5.99,
+    "isTaxable": false,
+    "version": 1
+  },
+  {
+    "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "name": "Hot Coffee",
+    "unitPrice": 3.50,
+    "isTaxable": true,
+    "version": 1
+  }
+]
 ```
 
-### Layer Placement Rules And Why
+**Flow:**
+1. React UI mounts and calls `getCatalogue()`
+2. API Client calls `GET /api/v1/catalogue`
+3. Catalogue endpoint calls `CheckoutService.GetCatalogueAsync()`
+4. Service queries the Products table via repository
+5. Products are mapped to `CatalogueItemModel` and returned as JSON
+6. UI renders product cards with name, price, and taxability indicator
 
-- API layer:
-    Handles HTTP-only concerns (routing, versioning, headers, status codes, OpenAPI, middleware) so transport changes do not ripple into business logic.
-- Application layer:
-    Owns use-case flow (calculate, submit), validation, idempotency workflow orchestration, and transaction boundaries via abstractions so the business process is testable and independent of infrastructure details.
-- Domain layer:
-    Holds core concepts and invariant-friendly types (`Product`, `DiscountType`) so critical business meaning remains independent from frameworks and I/O.
-- Infrastructure layer:
-    Implements technical concerns (EF Core, SQLite, repository classes, event handlers, migrations) so persistence/event technology can evolve without rewriting use-case logic.
-- Dependency rule:
-    Dependencies should point inward toward stable business policy (`Api/Infrastructure -> Application -> Domain`), with outward details implemented through interfaces from the application layer.
+### Phase 2: Order Calculation (Preview)
 
-## Architecture Diagram
+**Request:**
+```http
+POST /api/v1/orders/calculate
 
-```mermaid
-flowchart LR
-    Operator[Operator]
-    UI[React UI\nui/src]
-    Client[API Client\ncheckoutApi.ts]
-    Api[ASP.NET Core Minimal API\n/api/v1]
-    Middleware[Middleware\nCorrelation + Exception Handling]
-    Application[Application Layer\nCheckoutService + SubmitOrderCommandHandler]
-    Domain[Domain Rules\nProducts + Discounts + Tax + Rounding]
-    Infra[Infrastructure Layer\nRepositories + Unit of Work + Event Dispatcher]
-    Db[(SQLite)]
-    Outbox[(OutboxMessages)]
-
-    Operator --> UI
-    UI --> Client
-    Client --> Api
-    Api --> Middleware
-    Middleware --> Application
-    Application --> Domain
-    Application --> Infra
-    Infra --> Db
-    Infra --> Outbox
-    Db --> Infra
-    Infra --> Application
-    Application --> Middleware
-    Middleware --> Api
-    Api --> Client
-    Client --> UI
+{
+  "lineItems": [
+    {
+      "productId": "550e8400-e29b-41d4-a716-446655440000",
+      "quantity": 2
+    },
+    {
+      "productId": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "quantity": 1
+    }
+  ],
+  "discount": {
+    "type": "Percentage",
+    "value": 10.0
+  }
+}
 ```
 
-## Application Flow
+**Response:**
+```json
+{
+  "subtotal": 15.48,
+  "discountApplied": 1.55,
+  "tax": 2.79,
+  "total": 16.72,
+  "splitShares": [
+    { "payerIndex": 0, "amount": 556 },
+    { "payerIndex": 1, "amount": 558 },
+    { "payerIndex": 2, "amount": 558 }
+  ]
+}
+```
+
+**Flow:**
+1. User adjusts quantities and/or discount in the UI
+2. React UI generates `OrderCalculationRequestModel`
+3. API Client calls `POST /api/v1/orders/calculate` with request
+4. Calculation endpoint calls `CheckoutService.CalculateOrderAsync()`
+5. Service validates request using structured validator
+6. Service reads product details from Products table
+7. Service calculates: subtotal → discount → tax → total → split shares
+8. All amounts are rounded per item using bankers rounding (ToEven)
+9. Split shares are calculated as whole-number units with remainder to payer 1
+10. Result is returned to UI and displayed without persisting
+
+### Phase 3: Order Submission (Persisted)
+
+**Request:**
+```http
+POST /api/v1/orders/submit
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
+X-Correlation-ID: 6ba7b810-9dad-11d1-80b4-00c04fd430c9
+
+{
+  "lineItems": [
+    {
+      "productId": "550e8400-e29b-41d4-a716-446655440000",
+      "quantity": 2,
+      "productVersion": 1
+    },
+    {
+      "productId": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "quantity": 1,
+      "productVersion": 1
+    }
+  ],
+  "discount": {
+    "type": "Percentage",
+    "value": 10.0
+  }
+}
+```
+
+**Response (Success):**
+```json
+{
+  "subtotal": 15.48,
+  "discountApplied": 1.55,
+  "tax": 2.79,
+  "total": 16.72,
+  "splitShares": [
+    { "payerIndex": 0, "amount": 556 },
+    { "payerIndex": 1, "amount": 558 },
+    { "payerIndex": 2, "amount": 558 }
+  ]
+}
+```
+
+**Response (Concurrency Conflict):**
+```json
+{
+  "type": "https://api.checkout-system.local/problems/concurrency-conflict",
+  "title": "Concurrency Conflict",
+  "status": 409,
+  "detail": "Product 550e8400-e29b-41d4-a716-446655440000 is stale. Expected version 2, received 1.",
+  "traceId": "6ba7b810-9dad-11d1-80b4-00c04fd430c9"
+}
+```
+
+**Flow:**
+1. User clicks Submit in the UI
+2. UI generates a new UUID for `Idempotency-Key` and `X-Correlation-ID`
+3. API Client calls `POST /api/v1/orders/submit` with headers and request
+4. Correlation middleware extracts/validates `X-Correlation-ID` and enriches logging scope
+5. Submit endpoint routes to `SubmitOrderCommandHandler`
+6. Command handler checks idempotency:
+   - If key + request hash match a prior record → replay prior result (idempotent)
+   - If key matches but payload differs → return 400 Bad Request
+   - If key is new → proceed to validation and submission
+7. Command handler enforces optimistic concurrency:
+   - For each line item, validate `productVersion` matches current database version
+   - If mismatch detected → return 409 Conflict
+8. If validation passes:
+   - Begin transaction
+   - Calculate totals (same logic as preview)
+   - Persist immutable order snapshot to `Orders` table
+   - Persist line-item details to `OrderLineSnapshots` table
+   - Create initial status record in `OrderStatusHistory` (status: "Submitted")
+   - Persist idempotency result to `IdempotencyRecords` table
+   - Publish domain event to `OutboxMessages` for later processing
+   - Commit transaction
+9. Return final totals and split shares
+10. UI displays order summary with split breakdown
+
+## Sequence Diagrams
+
+### Catalogue Load and Order Workflow
 
 ```mermaid
 sequenceDiagram
@@ -160,10 +226,80 @@ sequenceDiagram
     Client-->>UI: Confirm successful submission and split view
 ```
 
+### Concurrency Conflict Handling
+
+```mermaid
+sequenceDiagram
+    participant Operator
+    participant UI as React UI
+    participant Client as API Client
+    participant API as Checkout API
+    participant Service as Application Services
+    participant Data as SQLite
+
+    Operator->>UI: Products loaded with version 1
+    Note over Data: (Backend updates product to version 2)
+    Operator->>UI: Set quantities and submit
+    UI->>Client: submitOrder(request with productVersion: 1)
+    Client->>API: POST /api/v1/orders/submit
+    API->>Service: SubmitOrderCommandHandler
+    Service->>Data: Check idempotency (miss, new key)
+    Service->>Data: Check product versions
+    Data-->>Service: Current product version is 2
+    Service-->>API: ConcurrencyConflictException
+    API-->>Client: 409 Conflict response
+    Client-->>UI: Show error: "Product is stale, please refresh"
+    Operator->>UI: Refresh catalogue
+    UI->>Client: getCatalogue()
+    Client->>API: GET /api/v1/catalogue
+    API->>Service: Get catalogue items
+    Service->>Data: Read products (now version 2)
+    Data-->>Service: Catalogue rows
+    Service-->>API: Catalogue models
+    API-->>Client: CatalogueItemResponse[]
+    Client-->>UI: Render updated product versions
+```
+
+### Idempotent Submission Retry
+
+```mermaid
+sequenceDiagram
+    participant Operator
+    participant UI as React UI
+    participant Client as API Client
+    participant API as Checkout API
+    participant Service as Application Services
+    participant Data as SQLite
+
+    Operator->>UI: Submit order (idempotencyKey: ABC-123)
+    UI->>Client: submitOrder(request, idempotencyKey: ABC-123)
+    Client->>API: POST /api/v1/orders/submit
+    API->>Service: SubmitOrderCommandHandler
+    Service->>Data: Check idempotency (miss)
+    Service->>Data: Persist order and idempotency result
+    Data-->>Service: Success
+    Service-->>API: OrderCalculationResultModel
+    API-->>Client: Response with split shares
+    Client-->>UI: Display success
+    Note over Operator: Network glitch, user retries with same key
+    Operator->>UI: Click Submit again (same idempotencyKey: ABC-123)
+    UI->>Client: submitOrder(request, idempotencyKey: ABC-123)
+    Client->>API: POST /api/v1/orders/submit
+    API->>Service: SubmitOrderCommandHandler
+    Service->>Data: Check idempotency (HIT)
+    Data-->>Service: Prior result found
+    Service-->>API: Replay OrderCalculationResultModel (exact same data)
+    API-->>Client: Response with split shares (identical)
+    Client-->>UI: Display success (consistent)
+```
+
 ## Notes
 
-- The UI targets `http://localhost:5152/api/v1` by default and can be overridden with `VITE_API_BASE_URL`.
-- Request payloads use string enum values for discount type, matching both the UI client and Swagger examples.
-- Submit requests must include `Idempotency-Key`; the backend replays the prior result when the same key and payload are retried.
-- Optimistic concurrency is enforced through `productVersion` on each selected line item.
-- Split-payment output currently returns exactly 3 whole-number shares (no cents), with any remainder whole unit assigned to payer 1.
+- All monetary values are in GBP.
+- Tax rate is fixed at 20% for taxable items only.
+- Discounts are applied before tax.
+- All amounts are rounded per item to 2 decimal places using bankers rounding (round half to even).
+- Split shares are whole-number units (pence); any rounding remainder is assigned to payer 1.
+- Idempotency key uniqueness and request hash validation ensure safe retry semantics.
+- Product version metadata enables optimistic concurrency and 409 conflict detection.
+- Correlation ID propagates through the request lifecycle for tracing and structured logging.

@@ -12,8 +12,9 @@
 - Added explicit Infrastructure and Application projects to keep persistence and business logic separated from API transport concerns.
 - Selected EF Core code-first with SQLite and migration-based startup for a predictable local proof-of-concept environment.
 - Implemented a lightweight validator engine in the application layer instead of introducing an external validation framework.
-- Confirmed calculation order as discount-before-tax with order-level rounding.
-- Adopted `MidpointRounding.AwayFromZero` for currency rounding in the service.
+- Confirmed calculation order as discount-before-tax with per-item rounding.
+- Adopted `MidpointRounding.ToEven` (bankers rounding) for currency rounding to 2 decimal places in the service.
+- Assumed GBP as the base currency for all monetary operations.
 
 ## Phase 3 API Development Decisions
 
